@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,34 +16,25 @@
  */
 package org.apache.commons;
 
+import junit.framework.TestCase;
+import org.apache.commons.vfs.FileSystemException;
+import org.apache.commons.vfs.util.Messages;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import junit.framework.TestCase;
-
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.util.Messages;
 
 /**
  * A base class for VFS tests.  Provides utility methods for locating
  * test resources.
  *
  * @author <a href="mailto:adammurdoch@apache.org">Adam Murdoch</a>
- * @version $Revision$ $Date$
+ * @version $Revision: 485757 $ $Date: 2006-12-11 18:14:29 +0100 (Mo, 11 Dez 2006) $
  */
 public abstract class AbstractVfsTestCase
     extends TestCase
 {
     private static File baseDir;
-
-    /** URL pattern */
-    private static final Pattern URL_PATTERN = Pattern.compile("[a-z]+://.*");
-
-    /** Password pattern */
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile(":(?:[^/]+)@");
 
     /**
      * Returns the name of the package containing a class.
@@ -51,7 +42,7 @@ public abstract class AbstractVfsTestCase
      * @return The . delimited package name, or an empty string if the class
      *         is in the default package.
      */
-    public static String getPackageName(final Class<?> clazz)
+    public static String getPackageName(final Class clazz)
     {
         final Package pkg = clazz.getPackage();
         if (null != pkg)
@@ -117,15 +108,15 @@ public abstract class AbstractVfsTestCase
 
     public static String getTestDirectory()
     {
-        return System.getProperty("test.basedir", "target/test-classes/test-data");
+        return System.getProperty("test.basedir");
     }
 
-    public static String getResourceTestDirectory()
-    {
-        return System.getProperty("test.basedir.res", "test-data");
-    }
+	public static String getResourceTestDirectory()
+	{
+		return System.getProperty("test.basedir.res");
+	}
 
-    /**
+	/**
      * Locates a test directory, creating it if it does not exist.
      *
      * @param name path of the directory, relative to this test's base directory.
@@ -184,8 +175,8 @@ public abstract class AbstractVfsTestCase
     {
         try
         {
-            Method method = throwable.getClass().getMethod("getCause", (Class[]) null);
-            return (Throwable) method.invoke(throwable, (Object[]) null);
+            Method method = throwable.getClass().getMethod("getCause", null);
+            return (Throwable) method.invoke(throwable, null);
         }
         catch (Exception e)
         {
@@ -209,7 +200,6 @@ public abstract class AbstractVfsTestCase
                                          final Object[] params,
                                          final Throwable throwable)
     {
-        Object[] parmArray = params;
         if (throwable instanceof FileSystemException)
         {
             final FileSystemException fse = (FileSystemException) throwable;
@@ -217,24 +207,15 @@ public abstract class AbstractVfsTestCase
             // Compare message code and params
             assertEquals(code, fse.getCode());
             assertEquals(params.length, fse.getInfo().length);
-            parmArray = new Object[params.length];
             for (int i = 0; i < params.length; i++)
             {
-                String value = String.valueOf(params[i]);
-                // mask passwords (VFS-169)
-                final Matcher urlMatcher = URL_PATTERN.matcher(value);
-                if (urlMatcher.find())
-                {
-                    final Matcher pwdMatcher = PASSWORD_PATTERN.matcher(value);
-                    value = pwdMatcher.replaceFirst(":***@");
-                }
-                assertEquals(value, fse.getInfo()[i]);
-                parmArray[i] = value;
+                final Object param = params[i];
+                assertEquals(String.valueOf(param), fse.getInfo()[i]);
             }
         }
 
         // Compare formatted message
-        final String message = Messages.getString(code, parmArray);
+        final String message = Messages.getString(code, params);
         assertEquals(message, throwable.getMessage());
     }
 
